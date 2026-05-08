@@ -12,6 +12,10 @@ The vision is simple: move beyond one-size-fits-all care and support a future wh
 
 ## Table of Contents
 
+- [Current Development Status](#current-development-status)
+- [Technology Stack](#technology-stack)
+- [Backend Project Structure](#backend-project-structure)
+- [Getting Started](#getting-started)
 - [Overview](#overview)
 - [Why Helixora AI Matters](#why-helixora-ai-matters)
 - [Problem Statement](#problem-statement)
@@ -31,6 +35,147 @@ The vision is simple: move beyond one-size-fits-all care and support a future wh
 - [Future Enhancements](#future-enhancements)
 - [Project Status](#project-status)
 - [License](#license)
+
+---
+
+## Current Development Status
+
+Helixora AI is now initialized as a backend-first Django project focused on safe, auditable clinical decision support foundations.
+
+### Implemented so far
+
+- Django project scaffold created under `config/`
+- Domain-oriented app structure created under `apps/`
+- Django REST Framework added for API development
+- Celery configured for background task orchestration
+- Base health endpoint added at `api/v1/health/`
+- Initial database migrations applied successfully
+- Python virtual environment and dependency management set up
+- `.gitignore` added for Python, Django, and local environment artifacts
+
+### Current focus
+
+The project is currently in the **platform foundation phase**. The next implementation priority is defining the first high-trust domain models and workflows for:
+
+- patient profiles
+- genomic insights
+- treatment recommendations
+- clinician review states
+- audit events
+
+---
+
+## Technology Stack
+
+The current backend stack is:
+
+- **Django** for core application structure, ORM, auth, and admin support
+- **Django REST Framework** for validated API contracts
+- **Celery** for asynchronous workflow execution
+- **Redis** as the planned Celery broker/result backend
+- **SQLite** for initial local development
+
+This stack was chosen to support:
+
+- explicit domain modeling
+- clinician review workflows
+- auditability and traceability
+- structured API validation
+- future asynchronous AI recommendation processing
+
+---
+
+## Backend Project Structure
+
+Current backend layout:
+
+```text
+manage.py
+requirements.txt
+config/
+	__init__.py
+	asgi.py
+	celery.py
+	urls.py
+	wsgi.py
+	settings/
+		__init__.py
+		base.py
+		local.py
+		production.py
+apps/
+	ai/
+	api/
+	audit/
+	genomics/
+	patients/
+	recommendations/
+	reviews/
+	rules/
+tests/
+```
+
+### App responsibilities
+
+- `apps/patients/` — patient profile and clinical context
+- `apps/genomics/` — genomic findings and biomarker-related data
+- `apps/recommendations/` — treatment recommendation drafts, rationale, confidence, uncertainty
+- `apps/reviews/` — clinician approval, override, and rejection workflows
+- `apps/audit/` — audit trail and recommendation lifecycle events
+- `apps/ai/` — AI orchestration and response normalization
+- `apps/rules/` — safety rules, contraindication checks, and missing-data guards
+- `apps/api/` — REST endpoints and API-facing contracts
+
+---
+
+## Getting Started
+
+### 1. Create and activate a virtual environment
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Install dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 3. Run migrations
+
+```powershell
+python manage.py migrate
+```
+
+### 4. Start the development server
+
+```powershell
+python manage.py runserver
+```
+
+### 5. Verify the health endpoint
+
+Open:
+
+`http://127.0.0.1:8000/api/v1/health/`
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "service": "helixora-api",
+  "framework": "django-drf-celery"
+}
+```
+
+### Celery note
+
+Celery is configured in the project, but background workers should be treated as the next operational setup step. A local Redis instance is expected for Celery task execution.
 
 ---
 
@@ -389,5 +534,33 @@ Potential future directions:
 - outcome feedback loops
 - enterprise-grade analytics dashboards
 - multilingual support for global health deployments
+
+---
+
+## Project Status
+
+### Current status
+
+**Active early-stage backend development**
+
+The repository currently includes:
+
+- project vision and product framing
+- healthcare-focused AI guardrail planning
+- Django backend scaffold
+- API and Celery foundation
+- initial local database setup
+
+### In progress next
+
+- core data models
+- recommendation schema design
+- clinician review workflow implementation
+- audit event modeling
+- safe recommendation generation pipeline
+
+### Guiding implementation principle
+
+Helixora AI is being built as a **clinical decision-support platform**, not an autonomous clinical decision-maker. High-impact recommendations must remain reviewable, explainable, and auditable.
 
 ---
