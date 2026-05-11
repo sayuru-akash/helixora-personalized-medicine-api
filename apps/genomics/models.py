@@ -4,6 +4,11 @@ from django.db import models
 
 
 class GenomicInsight(models.Model):
+	class ReviewStatus(models.TextChoices):
+		PENDING = 'pending', 'Pending'
+		REVIEWED = 'reviewed', 'Reviewed'
+		FLAGGED = 'flagged', 'Flagged'
+
 	class Significance(models.TextChoices):
 		HIGH = 'high', 'High'
 		MODERATE = 'moderate', 'Moderate'
@@ -24,8 +29,15 @@ class GenomicInsight(models.Model):
 		choices=Significance.choices,
 		default=Significance.UNCERTAIN,
 	)
+	review_status = models.CharField(
+		max_length=20,
+		choices=ReviewStatus.choices,
+		default=ReviewStatus.PENDING,
+	)
+	is_actionable = models.BooleanField(default=False)
 	evidence_summary = models.TextField(blank=True)
 	source = models.CharField(max_length=255, blank=True)
+	report_reference = models.CharField(max_length=255, blank=True)
 	observed_at = models.DateField(blank=True, null=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 

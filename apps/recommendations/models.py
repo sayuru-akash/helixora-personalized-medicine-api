@@ -28,6 +28,13 @@ class TreatmentRecommendation(models.Model):
 		on_delete=models.CASCADE,
 		related_name='recommendations',
 	)
+	primary_genomic_insight = models.ForeignKey(
+		'genomics.GenomicInsight',
+		on_delete=models.SET_NULL,
+		blank=True,
+		null=True,
+		related_name='recommendations',
+	)
 	title = models.CharField(max_length=255)
 	summary = models.TextField()
 	rationale = models.TextField()
@@ -36,6 +43,9 @@ class TreatmentRecommendation(models.Model):
 	contraindication_warnings = models.JSONField(default=list, blank=True)
 	missing_data_flags = models.JSONField(default=list, blank=True)
 	uncertainty_notes = models.TextField(blank=True)
+	intended_use_notice = models.TextField(
+		default='Clinical decision support only. Requires clinician review before action.'
+	)
 	status = models.CharField(
 		max_length=20,
 		choices=Status.choices,

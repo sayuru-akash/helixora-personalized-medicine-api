@@ -31,6 +31,8 @@ class ClinicalReview(models.Model):
 	)
 	review_notes = models.TextField(blank=True)
 	override_reason = models.TextField(blank=True)
+	limitations_acknowledged = models.BooleanField(default=False)
+	missing_data_acknowledged = models.BooleanField(default=False)
 	reviewed_at = models.DateTimeField(blank=True, null=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)

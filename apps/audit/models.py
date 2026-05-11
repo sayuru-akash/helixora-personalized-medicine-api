@@ -8,6 +8,7 @@ class AuditEvent(models.Model):
 	class EventType(models.TextChoices):
 		RECOMMENDATION_CREATED = 'recommendation_created', 'Recommendation Created'
 		RECOMMENDATION_UPDATED = 'recommendation_updated', 'Recommendation Updated'
+		RECOMMENDATION_REVIEW_REQUESTED = 'recommendation_review_requested', 'Recommendation Review Requested'
 		REVIEW_SUBMITTED = 'review_submitted', 'Review Submitted'
 		REVIEW_APPROVED = 'review_approved', 'Review Approved'
 		REVIEW_OVERRIDDEN = 'review_overridden', 'Review Overridden'
@@ -36,6 +37,7 @@ class AuditEvent(models.Model):
 		null=True,
 		related_name='audit_events',
 	)
+	correlation_id = models.CharField(max_length=100, blank=True)
 	metadata = models.JSONField(default=dict, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
