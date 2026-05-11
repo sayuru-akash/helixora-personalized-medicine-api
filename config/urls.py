@@ -17,7 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.api.frontend_views import LandingPageView
+
 urlpatterns = [
+    path('', LandingPageView.as_view(), name='landing-page'),
     path('admin/', admin.site.urls),
     path('api/v1/', include('apps.api.urls')),
 ]
