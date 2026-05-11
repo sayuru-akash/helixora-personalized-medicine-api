@@ -8,147 +8,234 @@
     <link rel="stylesheet" href="{% static 'frontend/styles.css' %}" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="hero">
-        <div class="hero__content">
-          <div class="eyebrow">
-            Helixora AI · Personalized medicine decision support
+    <div class="studio-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand__logo">H</div>
+          <div>
+            <strong>Helixora AI</strong>
+            <p>Clinical intelligence studio</p>
           </div>
-          <h1>Clinician-centered precision treatment intelligence.</h1>
+        </div>
+
+        <nav class="sidebar__nav">
+          <a class="nav-item nav-item--active" href="/">
+            <span class="nav-item__icon">✦</span>
+            <span>Workspace</span>
+          </a>
+          <a class="nav-item" href="/api/v1/health/">
+            <span class="nav-item__icon">◎</span>
+            <span>Runtime</span>
+          </a>
+          <a class="nav-item" href="/admin/">
+            <span class="nav-item__icon">⌘</span>
+            <span>Admin</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-card">
+          <span class="sidebar-card__label">System status</span>
+          <strong>{{ health.status|upper }}</strong>
           <p>
-            A production-oriented personalized medicine platform with
-            explainable recommendation workflows, auditability, and explicit
-            clinician oversight.
+            {{ health.environment }} environment with clinician review workflow
+            enabled.
           </p>
-          <div class="hero__actions">
-            <a class="button button--primary" href="/api/v1/health/"
-              >Open API health</a
-            >
-            <a class="button button--secondary" href="/admin/">Open admin</a>
-          </div>
         </div>
-        <div class="status-card">
-          <div class="status-card__label">Runtime status</div>
-          <div class="status-card__value">{{ health.status|upper }}</div>
-          <ul>
-            <li>
-              <span>Environment</span><strong>{{ health.environment }}</strong>
-            </li>
-            <li>
-              <span>Broker configured</span
-              ><strong>{{ health.celery.broker_configured }}</strong>
-            </li>
-            <li>
-              <span>Task eager mode</span
-              ><strong>{{ health.celery.task_always_eager }}</strong>
-            </li>
-          </ul>
-        </div>
-      </header>
+      </aside>
 
-      <section class="metrics-grid">
-        <article class="metric-card">
-          <h2>{{ stats.patients }}</h2>
-          <p>Patient profiles</p>
-        </article>
-        <article class="metric-card">
-          <h2>{{ stats.recommendations }}</h2>
-          <p>Recommendations</p>
-        </article>
-        <article class="metric-card metric-card--attention">
-          <h2>{{ stats.pending_reviews }}</h2>
-          <p>Pending clinical reviews</p>
-        </article>
-        <article class="metric-card">
-          <h2>{{ stats.audit_events }}</h2>
-          <p>Audit events</p>
-        </article>
-      </section>
-
-      <section class="content-grid">
-        <div class="panel">
-          <div class="panel__header">
-            <h3>Latest recommendations</h3>
-            <span>Decision support drafts only</span>
+      <main class="studio-main">
+        <header class="topbar">
+          <div>
+            <div class="topbar__eyebrow">Personalized medicine workspace</div>
+            <h1>Build, review, and trace recommendation workflows.</h1>
           </div>
-          {% if latest_recommendations %}
-          <div class="list">
-            {% for recommendation in latest_recommendations %}
-            <div class="list-item">
+          <div class="topbar__actions">
+            <div class="topbar__status">
+              <span class="live-dot"></span>
+              <span>{{ health.status|title }}</span>
+            </div>
+            <div class="user-badge">HA</div>
+          </div>
+        </header>
+
+        <section class="prompt-panel">
+          <div class="prompt-panel__content">
+            <div class="prompt-panel__label">Clinical orchestration prompt</div>
+            <h2>
+              What would you like Helixora AI to prepare for clinician review?
+            </h2>
+            <p>
+              Surface explainable treatment support, highlight missing data, and
+              keep every recommendation auditable before any human action.
+            </p>
+          </div>
+          <div class="chip-row">
+            <span class="chip">Summarize biomarkers</span>
+            <span class="chip">Highlight missing data</span>
+            <span class="chip">Prepare clinician draft</span>
+            <span class="chip">Show review blockers</span>
+          </div>
+          <div class="prompt-box">
+            <div class="composer-toolbar">
+              <span class="composer-pill composer-pill--active">Prompt</span>
+              <span class="composer-pill">Context</span>
+              <span class="composer-pill">Safety</span>
+            </div>
+            <div class="prompt-box__input">
+              <span class="prompt-box__placeholder"
+                >Ask Helixora AI to generate a clinician-ready recommendation
+                draft...</span
+              >
+              <p>
+                Summarize patient context, detect genomic signals, surface
+                uncertainty, and prepare a safe recommendation draft.
+              </p>
+            </div>
+            <div class="prompt-box__actions">
+              <a class="button button--primary" href="/admin/"
+                >Open workspace</a
+              >
+              <a class="button button--ghost" href="/api/v1/health/"
+                >View API status</a
+              >
+              <button class="icon-button" type="button">+</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="metric-row">
+          <article class="metric-tile">
+            <span>Patients</span>
+            <strong>{{ stats.patients }}</strong>
+          </article>
+          <article class="metric-tile">
+            <span>Recommendations</span>
+            <strong>{{ stats.recommendations }}</strong>
+          </article>
+          <article class="metric-tile metric-tile--accent">
+            <span>Pending reviews</span>
+            <strong>{{ stats.pending_reviews }}</strong>
+          </article>
+          <article class="metric-tile">
+            <span>Audit events</span>
+            <strong>{{ stats.audit_events }}</strong>
+          </article>
+        </section>
+
+        <section class="workspace-grid">
+          <section class="surface-card surface-card--large">
+            <div class="surface-card__header">
               <div>
-                <h4>{{ recommendation.title }}</h4>
-                <p>Patient {{ recommendation.patient.external_id }}</p>
+                <span class="section-tag">Recommendations</span>
+                <h3>Latest decision-support drafts</h3>
               </div>
-              <div class="pill-group">
-                <span class="pill"
-                  >{{ recommendation.get_status_display }}</span
-                >
-                <span class="pill pill--muted"
-                  >{{ recommendation.get_confidence_level_display }}</span
-                >
+              <span class="section-meta">Decision support only</span>
+            </div>
+
+            <div class="tab-row">
+              <span class="tab tab--active">Output</span>
+              <span class="tab">Reasoning</span>
+              <span class="tab">Review state</span>
+            </div>
+
+            {% if latest_recommendations %}
+            <div class="workspace-list">
+              {% for recommendation in latest_recommendations %}
+              <article class="workspace-item">
+                <div>
+                  <h4>{{ recommendation.title }}</h4>
+                  <p>Patient {{ recommendation.patient.external_id }}</p>
+                </div>
+                <div class="token-group">
+                  <span class="token"
+                    >{{ recommendation.get_status_display }}</span
+                  >
+                  <span class="token token--muted"
+                    >{{ recommendation.get_confidence_level_display }}</span
+                  >
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">No recommendation drafts yet.</p>
+            {% endif %}
+          </section>
+
+          <section class="workspace-side">
+            <div class="surface-card">
+              <div class="surface-card__header">
+                <div>
+                  <span class="section-tag">Runtime</span>
+                  <h3>Environment snapshot</h3>
+                </div>
+              </div>
+              <ul class="detail-list">
+                <li>
+                  <span>Environment</span
+                  ><strong>{{ health.environment }}</strong>
+                </li>
+                <li>
+                  <span>Broker configured</span
+                  ><strong>{{ health.celery.broker_configured }}</strong>
+                </li>
+                <li>
+                  <span>Task eager mode</span
+                  ><strong>{{ health.celery.task_always_eager }}</strong>
+                </li>
+              </ul>
+            </div>
+
+            <div class="surface-card quick-panel">
+              <div class="surface-card__header">
+                <div>
+                  <span class="section-tag">Quick actions</span>
+                  <h3>Suggested next steps</h3>
+                </div>
+              </div>
+              <div class="quick-actions">
+                <a class="quick-action" href="/admin/">
+                  <strong>Review patient records</strong>
+                  <span>Open admin workspace</span>
+                </a>
+                <a class="quick-action" href="/api/v1/health/">
+                  <strong>Check system readiness</strong>
+                  <span>Inspect runtime health</span>
+                </a>
               </div>
             </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="empty-state">
-            No recommendations yet. Generate drafts through the backend
-            workflow.
-          </p>
-          {% endif %}
-        </div>
 
-        <div class="panel">
-          <div class="panel__header">
-            <h3>Recent audit activity</h3>
-            <span>Immutable workflow trace</span>
-          </div>
-          {% if latest_audit_events %}
-          <div class="timeline">
-            {% for event in latest_audit_events %}
-            <div class="timeline__item">
-              <div class="timeline__dot"></div>
-              <div>
-                <h4>{{ event.get_event_type_display }}</h4>
-                <p>
-                  {% if event.patient %}Patient {{ event.patient.external_id }}
-                  · {% endif %} {{ event.created_at|date:"Y-m-d H:i" }}
-                </p>
+            <div class="surface-card">
+              <div class="surface-card__header">
+                <div>
+                  <span class="section-tag">Audit</span>
+                  <h3>Recent activity</h3>
+                </div>
               </div>
+              {% if latest_audit_events %}
+              <div class="audit-list">
+                {% for event in latest_audit_events %}
+                <article class="audit-item">
+                  <span class="audit-item__dot"></span>
+                  <div>
+                    <h4>{{ event.get_event_type_display }}</h4>
+                    <p>
+                      {% if event.patient %}Patient {{ event.patient.external_id
+                      }} · {% endif %} {{ event.created_at|date:"Y-m-d H:i" }}
+                    </p>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="empty-state">
+                Audit events will appear as workflows run.
+              </p>
+              {% endif %}
             </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="empty-state">
-            Audit trail entries will appear here as workflows are exercised.
-          </p>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="feature-strip">
-        <div class="feature-card">
-          <h3>High-trust workflows</h3>
-          <p>
-            Structured recommendations, visible uncertainty, and clinician
-            review before action.
-          </p>
-        </div>
-        <div class="feature-card">
-          <h3>Production foundation</h3>
-          <p>
-            Environment-driven settings, correlation IDs, health checks, and
-            test-covered backend services.
-          </p>
-        </div>
-        <div class="feature-card">
-          <h3>Operational traceability</h3>
-          <p>
-            Audit events and review lifecycle tracking designed for
-            healthcare-grade accountability.
-          </p>
-        </div>
-      </section>
+          </section>
+        </section>
+      </main>
     </div>
   </body>
 </html>

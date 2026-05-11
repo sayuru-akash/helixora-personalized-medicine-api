@@ -8,4 +8,4 @@ class LandingPageTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Helixora AI')
-		self.assertContains(response, 'Clinician-centered precision treatment intelligence.')
+		self.assertContains(response, 'Build, review, and trace recommendation workflows.')
