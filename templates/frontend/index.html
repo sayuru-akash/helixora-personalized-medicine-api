@@ -21,11 +21,11 @@
         <nav class="sidebar__nav">
           <a class="nav-item nav-item--active" href="/">
             <span class="nav-item__icon">✦</span>
-            <span>Workspace</span>
+            <span>Home</span>
           </a>
-          <a class="nav-item" href="/api/v1/health/">
-            <span class="nav-item__icon">◎</span>
-            <span>Runtime</span>
+          <a class="nav-item" href="/workspace/">
+            <span class="nav-item__icon">◉</span>
+            <span>Workspace</span>
           </a>
           <a class="nav-item" href="/admin/">
             <span class="nav-item__icon">⌘</span>
@@ -34,12 +34,9 @@
         </nav>
 
         <div class="sidebar-card">
-          <span class="sidebar-card__label">System status</span>
-          <strong>{{ health.status|upper }}</strong>
-          <p>
-            {{ health.environment }} environment with clinician review workflow
-            enabled.
-          </p>
+          <span class="sidebar-card__label">Experience status</span>
+          <strong>{{ experience_status.headline }}</strong>
+          <p>{{ experience_status.summary }}</p>
         </div>
       </aside>
 
@@ -48,6 +45,11 @@
           <div>
             <div class="topbar__eyebrow">Personalized medicine workspace</div>
             <h1>Build, review, and trace recommendation workflows.</h1>
+            <p class="hero-subtitle">
+              Turn complex patient and genomic context into a clear,
+              clinician-ready decision-support workspace with guided review,
+              evidence visibility, and safer next actions.
+            </p>
           </div>
           <div class="topbar__actions">
             <div class="topbar__status">
@@ -59,6 +61,8 @@
         </header>
 
         <section class="prompt-panel">
+          <div class="hero-orb hero-orb--one"></div>
+          <div class="hero-orb hero-orb--two"></div>
           <div class="prompt-panel__content">
             <div class="prompt-panel__label">Clinical orchestration prompt</div>
             <h2>
@@ -92,11 +96,9 @@
               </p>
             </div>
             <div class="prompt-box__actions">
-              <a class="button button--primary" href="/admin/"
-                >Open workspace</a
-              >
-              <a class="button button--ghost" href="/api/v1/health/"
-                >View API status</a
+              <a class="button button--primary" href="/admin/">Open admin</a>
+              <a class="button button--ghost" href="/workspace/"
+                >Launch recommendation workspace</a
               >
               <button class="icon-button" type="button">+</button>
             </div>
@@ -119,6 +121,33 @@
           <article class="metric-tile">
             <span>Audit events</span>
             <strong>{{ stats.audit_events }}</strong>
+          </article>
+        </section>
+
+        <section class="feature-strip">
+          <article class="feature-card">
+            <span class="section-tag">Clinician flow</span>
+            <h3>Built for guided review</h3>
+            <p>
+              Recommendations stay in draft mode until a clinician reviews
+              limitations, missing data, and rationale.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="section-tag">Explainability</span>
+            <h3>Evidence stays visible</h3>
+            <p>
+              Surface biomarkers, confidence, and review blockers without
+              exposing developer-facing payloads to end users.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="section-tag">Readiness</span>
+            <h3>Actionable user entry points</h3>
+            <p>
+              Guide users into the recommendation workspace instead of raw
+              system endpoints or diagnostic pages.
+            </p>
           </article>
         </section>
 
@@ -166,22 +195,28 @@
             <div class="surface-card">
               <div class="surface-card__header">
                 <div>
-                  <span class="section-tag">Runtime</span>
-                  <h3>Environment snapshot</h3>
+                  <span class="section-tag">Workspace readiness</span>
+                  <h3>Operational overview</h3>
                 </div>
               </div>
               <ul class="detail-list">
                 <li>
-                  <span>Environment</span
-                  ><strong>{{ health.environment }}</strong>
+                  <span>Deployment profile</span
+                  ><strong>{{ health.environment|title }}</strong>
                 </li>
                 <li>
-                  <span>Broker configured</span
-                  ><strong>{{ health.celery.broker_configured }}</strong>
+                  <span>Background tasks</span
+                  ><strong
+                    >{% if health.celery.broker_configured %}Ready{% else
+                    %}Setup needed{% endif %}</strong
+                  >
                 </li>
                 <li>
-                  <span>Task eager mode</span
-                  ><strong>{{ health.celery.task_always_eager }}</strong>
+                  <span>Automation mode</span
+                  ><strong
+                    >{% if health.celery.task_always_eager %}Immediate
+                    processing{% else %}Queued processing{% endif %}</strong
+                  >
                 </li>
               </ul>
             </div>
@@ -198,9 +233,9 @@
                   <strong>Review patient records</strong>
                   <span>Open admin workspace</span>
                 </a>
-                <a class="quick-action" href="/api/v1/health/">
-                  <strong>Check system readiness</strong>
-                  <span>Inspect runtime health</span>
+                <a class="quick-action" href="/workspace/">
+                  <strong>Start recommendation workflow</strong>
+                  <span>Open clinician-facing generation workspace</span>
                 </a>
               </div>
             </div>

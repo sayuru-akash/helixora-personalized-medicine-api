@@ -6,6 +6,7 @@ from .views import (
     ClinicalReviewViewSet,
     GenomicInsightViewSet,
     HealthCheckView,
+    OperationsHealthCheckView,
     PatientProfileViewSet,
     TreatmentRecommendationViewSet,
 )
@@ -21,5 +22,6 @@ router.register('audit-events', AuditEventViewSet, basename='audit-event')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('ops/health/', OperationsHealthCheckView.as_view(), name='operations-health-check'),
     path('', include(router.urls)),
 ]

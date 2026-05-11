@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -22,6 +23,13 @@ from .serializers import (
 class HealthCheckView(APIView):
 	permission_classes = []
 	authentication_classes = []
+
+	def get(self, request):
+		return Response(get_health_status())
+
+
+class OperationsHealthCheckView(APIView):
+	permission_classes = [IsAdminUser]
 
 	def get(self, request):
 		return Response(get_health_status())

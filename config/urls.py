@@ -17,10 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.api.frontend_views import LandingPageView
+from apps.api.frontend_views import LandingPageView, RecommendationWorkspaceView
 
 urlpatterns = [
     path('', LandingPageView.as_view(), name='landing-page'),
+    path('workspace/', RecommendationWorkspaceView.as_view(), name='recommendation-workspace'),
     path('admin/', admin.site.urls),
     path('api/v1/', include('apps.api.urls')),
 ]

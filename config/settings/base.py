@@ -162,6 +162,10 @@ CELERY_TASK_ALWAYS_EAGER = get_bool_env('CELERY_TASK_ALWAYS_EAGER', False)
 
 LOG_LEVEL = get_env('DJANGO_LOG_LEVEL', 'INFO')
 
+HELIXORA_AI_PROVIDER = get_env('HELIXORA_AI_PROVIDER', 'placeholder')
+GEMINI_API_KEY = get_env('GEMINI_API_KEY', '')
+GEMINI_MODEL = get_env('GEMINI_MODEL', 'gemini-1.5-pro')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
