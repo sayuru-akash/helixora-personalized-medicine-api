@@ -4,6 +4,7 @@ from rest_framework import serializers
 from django.test import TestCase
 
 from apps.api.serializers import ClinicalReviewSerializer
+from apps.audit.models import AuditEvent
 from apps.patients.models import PatientProfile
 from apps.recommendations.models import TreatmentRecommendation
 from apps.reviews.models import ClinicalReview
@@ -51,3 +52,18 @@ class ClinicalReviewSerializerTests(TestCase):
 
 		self.assertFalse(serializer.is_valid())
 		self.assertIn('limitations_acknowledged', serializer.errors)
+
+	def test_review_update_creates_audit_event(self):
+		review = ClinicalReview.objects.create(recommendation=self.recommendation)
+		review.reviewer = self.user
+		review.decision = ClinicalReview.Decision.APPROVED
+		review.limitations_acknowledged = True
+		review.missing_data_acknowledged = True
+		review.save()
+
+		self.assertTrue(
+			AuditEvent.objects.filter(
+				recommendation=self.recommendation,
+				event_type=AuditEvent.EventType.REVIEW_APPROVED,
+			).exists()
+		)
