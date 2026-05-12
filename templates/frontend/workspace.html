@@ -139,6 +139,10 @@
 
                 <div class="result-metrics">
                   <span>
+                    <small>AI provider</small>
+                    <strong>{{ workflow_result.recommendation.generated_by }}</strong>
+                  </span>
+                  <span>
                     <small>Confidence</small>
                     <strong>{{ workflow_result.recommendation.get_confidence_level_display }}</strong>
                   </span>

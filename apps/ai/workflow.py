@@ -5,8 +5,11 @@ import logging
 
 from apps.ai.providers import PlaceholderRecommendationProvider, get_recommendation_provider
 from apps.ai.services import generate_recommendation
+from apps.audit.models import AuditEvent
+from apps.audit.services import create_audit_event
 from apps.genomics.models import GenomicInsight
 from apps.patients.models import PatientProfile
+from apps.recommendations.models import TreatmentRecommendation
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +20,24 @@ class RecommendationWorkflowResult:
 	patient: PatientProfile
 	genomic_insight: GenomicInsight | None
 	recommendation: object
+	provider_name: str
+	used_fallback: bool
+
+
+def _derive_confidence_level(provider_result) -> str:
+	if provider_result.missing_data_flags:
+		return TreatmentRecommendation.ConfidenceLevel.INSUFFICIENT_DATA
+	if provider_result.evidence_references and provider_result.suggested_options:
+		return TreatmentRecommendation.ConfidenceLevel.MEDIUM
+	return TreatmentRecommendation.ConfidenceLevel.LOW
+
+
+def _derive_risk_level(provider_result) -> str:
+	if provider_result.contraindication_warnings:
+		return TreatmentRecommendation.RiskLevel.HIGH
+	if provider_result.missing_data_flags:
+		return TreatmentRecommendation.RiskLevel.MEDIUM
+	return TreatmentRecommendation.RiskLevel.LOW
 
 
 def run_recommendation_workflow(*, patient_data: dict, genomic_data: dict | None = None, actor=None, correlation_id: str = ''):
@@ -31,10 +52,12 @@ def run_recommendation_workflow(*, patient_data: dict, genomic_data: dict | None
 		genomic_insight = GenomicInsight.objects.create(patient=patient, **genomic_data)
 
 	provider = get_recommendation_provider()
+	used_fallback = False
 	try:
 		provider_result = provider.generate(patient_payload=patient_data, genomic_payload=genomic_data)
 	except Exception:
 		logger.exception('Recommendation provider failed; using safe placeholder provider')
+		used_fallback = True
 		provider_result = PlaceholderRecommendationProvider().generate(
 			patient_payload=patient_data,
 			genomic_payload=genomic_data,
@@ -59,6 +82,12 @@ def run_recommendation_workflow(*, patient_data: dict, genomic_data: dict | None
 	recommendation.missing_data_flags = provider_result.missing_data_flags
 	recommendation.contraindication_warnings = provider_result.contraindication_warnings
 	recommendation.primary_genomic_insight = genomic_insight
+	recommendation.confidence_level = _derive_confidence_level(provider_result)
+	recommendation.risk_level = _derive_risk_level(provider_result)
+	recommendation.generated_by = provider_result.model_name
+	recommendation.model_version = provider_result.model_version
+	recommendation.status = TreatmentRecommendation.Status.NEEDS_REVIEW
+	recommendation.clinician_review_required = True
 	recommendation.save(
 		update_fields=[
 			'summary',
@@ -69,12 +98,35 @@ def run_recommendation_workflow(*, patient_data: dict, genomic_data: dict | None
 			'missing_data_flags',
 			'contraindication_warnings',
 			'primary_genomic_insight',
+			'confidence_level',
+			'risk_level',
+			'generated_by',
+			'model_version',
+			'status',
+			'clinician_review_required',
 			'updated_at',
 		]
+	)
+
+	create_audit_event(
+		event_type=AuditEvent.EventType.RECOMMENDATION_UPDATED,
+		patient=patient,
+		recommendation=recommendation,
+		actor=actor,
+		correlation_id=correlation_id,
+		metadata={
+			'ai_provider': provider_result.model_name,
+			'model_version': provider_result.model_version,
+			'used_fallback': used_fallback,
+			'confidence_level': recommendation.confidence_level,
+			'risk_level': recommendation.risk_level,
+		},
 	)
 
 	return RecommendationWorkflowResult(
 		patient=patient,
 		genomic_insight=genomic_insight,
 		recommendation=recommendation,
+		provider_name=provider_result.model_name,
+		used_fallback=used_fallback,
 	)

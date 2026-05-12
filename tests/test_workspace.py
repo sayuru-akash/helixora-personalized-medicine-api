@@ -40,6 +40,8 @@ class RecommendationWorkspaceTests(TestCase):
 		self.assertEqual(TreatmentRecommendation.objects.count(), 1)
 		self.assertContains(response, 'Personalized treatment review for P-9001')
 		self.assertContains(response, 'Review report')
+		self.assertContains(response, 'AI provider')
+		self.assertContains(response, 'safe-placeholder-engine')
 		self.assertEqual(ClinicalReview.objects.count(), 1)
 
 	def test_workspace_submission_updates_existing_patient(self):

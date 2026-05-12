@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+from json import JSONDecodeError
 
 
 logger = logging.getLogger(__name__)
@@ -98,9 +99,55 @@ class GeminiRecommendationProvider(BaseRecommendationProvider):
 
 	def _build_prompt(self, *, patient_payload: dict, genomic_payload: dict | None) -> str:
 		return (
-			f'Patient data: {json.dumps(patient_payload)}. '
-			f'Genomic data: {json.dumps(genomic_payload or {})}.'
+			'Generate a structured clinical decision-support draft for the supplied synthetic or de-identified data. '
+			'Do not provide final medical advice, diagnosis, dosing, or autonomous treatment orders. '
+			'Always surface uncertainty, missing data, contraindication considerations, and clinician review requirements. '
+			f'Patient data: {json.dumps(patient_payload, default=str)}. '
+			f'Genomic data: {json.dumps(genomic_payload or {}, default=str)}.'
 		)
+
+	def _coerce_list(self, value) -> list:
+		if value is None:
+			return []
+		if isinstance(value, list):
+			return value
+		if isinstance(value, tuple):
+			return list(value)
+		if isinstance(value, str):
+			return [value] if value.strip() else []
+		return [value]
+
+	def _extract_string_field(self, text: str, field_name: str) -> str:
+		match = re.search(
+			rf'"{re.escape(field_name)}"\s*:\s*"((?:\\.|[^"\\])*)"',
+			text,
+			flags=re.IGNORECASE | re.DOTALL,
+		)
+		if not match:
+			return ''
+		try:
+			return json.loads(f'"{match.group(1)}"')
+		except JSONDecodeError:
+			return match.group(1).replace('\\n', ' ').replace('\\"', '"').strip()
+
+	def _payload_from_malformed_json(self, text: str) -> dict:
+		return {
+			'summary': self._extract_string_field(text, 'summary')
+			or 'AI provider returned a response that requires clinician review before use.',
+			'rationale': self._extract_string_field(text, 'rationale')
+			or 'AI provider response could not be fully normalized into structured rationale. Clinician review is required.',
+			'suggested_options': [
+				{
+					'label': 'Clinician review required',
+					'description': 'AI response normalization was incomplete; review source data and generated text before action.',
+				}
+			],
+			'evidence_references': [],
+			'uncertainty_notes': self._extract_string_field(text, 'uncertainty_notes')
+			or 'AI response normalization was incomplete; verify all clinical assumptions before action.',
+			'missing_data_flags': ['AI response normalization incomplete'],
+			'contraindication_warnings': [],
+		}
 
 	def _call_gemini(self, prompt: str) -> dict:
 		try:
@@ -146,7 +193,7 @@ class GeminiRecommendationProvider(BaseRecommendationProvider):
 				responseMimeType='application/json',
 				responseSchema=GeminiRecommendationPayload,
 				temperature=0.2,
-				maxOutputTokens=1200,
+				maxOutputTokens=2400,
 			),
 		)
 		parsed = getattr(response, 'parsed', None)
@@ -162,7 +209,11 @@ class GeminiRecommendationProvider(BaseRecommendationProvider):
 
 		text = self._extract_json_text(text)
 
-		return json.loads(text)
+		try:
+			return json.loads(text)
+		except JSONDecodeError:
+			logger.warning('Gemini returned malformed JSON; preserving AI response with safe normalization')
+			return self._payload_from_malformed_json(text)
 
 	def _extract_json_text(self, text: str) -> str:
 		text = text.strip()
@@ -180,14 +231,27 @@ class GeminiRecommendationProvider(BaseRecommendationProvider):
 	def generate(self, *, patient_payload: dict, genomic_payload: dict | None = None) -> AIProviderResult:
 		payload = self._call_gemini(self._build_prompt(patient_payload=patient_payload, genomic_payload=genomic_payload))
 
+		summary = (payload.get('summary') or '').strip()
+		rationale = (payload.get('rationale') or '').strip()
+		uncertainty_notes = (payload.get('uncertainty_notes') or '').strip()
+
+		if not summary:
+			summary = 'AI-generated clinical decision-support draft requires clinician review before action.'
+		if not rationale:
+			rationale = 'AI-generated rationale was incomplete; qualified clinician review is required.'
+		if not uncertainty_notes:
+			uncertainty_notes = 'AI output is decision support only and must be reviewed by a qualified clinician.'
+
 		return AIProviderResult(
-			summary=payload.get('summary', 'Clinician review required.'),
-			rationale=payload.get('rationale', 'AI-generated rationale unavailable.'),
-			suggested_options=payload.get('suggested_options', []),
-			evidence_references=payload.get('evidence_references', []),
-			uncertainty_notes=payload.get('uncertainty_notes', ''),
-			missing_data_flags=payload.get('missing_data_flags', []),
-			contraindication_warnings=payload.get('contraindication_warnings', []),
+			summary=summary,
+			rationale=rationale,
+			suggested_options=self._coerce_list(payload.get('suggested_options')),
+			evidence_references=self._coerce_list(payload.get('evidence_references')),
+			uncertainty_notes=uncertainty_notes,
+			missing_data_flags=[str(item) for item in self._coerce_list(payload.get('missing_data_flags')) if str(item).strip()],
+			contraindication_warnings=[
+				str(item) for item in self._coerce_list(payload.get('contraindication_warnings')) if str(item).strip()
+			],
 			model_name=self.provider_name,
 			model_version=self.model,
 		)

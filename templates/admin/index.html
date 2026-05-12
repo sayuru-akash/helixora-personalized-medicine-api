@@ -1,0 +1,17 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content_title %}
+<div class="helixora-admin-hero">
+  <p class="helixora-admin-eyebrow">Clinical decision support</p>
+  <h1>{{ site_header|default:_('Django administration') }}</h1>
+  <p>
+    Manage patient profiles, genomic insights, recommendation drafts, clinician reviews,
+    and audit history from one operational workspace.
+  </p>
+  <div class="helixora-admin-hero__actions">
+    <a href="/workspace/" class="helixora-admin-button helixora-admin-button--primary">Open workspace</a>
+    <a href="/" class="helixora-admin-button">View dashboard</a>
+  </div>
+</div>
+{% endblock %}

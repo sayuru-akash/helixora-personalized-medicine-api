@@ -53,6 +53,7 @@ class AdminExperienceTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Helixora Clinical Operations')
 		self.assertContains(response, 'Clinical Decision Support Administration')
+		self.assertContains(response, 'admin/helixora_admin.css')
 
 	def test_key_domain_admin_changelists_are_accessible(self):
 		urls = [
