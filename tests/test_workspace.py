@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
 
@@ -9,7 +11,26 @@ from apps.reviews.models import ClinicalReview
 
 
 class RecommendationWorkspaceTests(TestCase):
+	def setUp(self):
+		self.user = get_user_model().objects.create_user(
+			username='workspace-clinician',
+			email='workspace@example.com',
+			password='safe-password-123',
+		)
+		self.user.groups.add(Group.objects.create(name='clinical_editor'))
+
+	def login_workspace_user(self):
+		self.client.force_login(self.user)
+
+	def test_workspace_requires_authentication(self):
+		response = self.client.get(reverse('recommendation-workspace'))
+
+		self.assertEqual(response.status_code, 302)
+		self.assertIn('/admin/login/', response['Location'])
+
 	def test_workspace_page_renders(self):
+		self.login_workspace_user()
+
 		response = self.client.get(reverse('recommendation-workspace'))
 
 		self.assertEqual(response.status_code, 200)
@@ -17,6 +38,8 @@ class RecommendationWorkspaceTests(TestCase):
 		self.assertContains(response, 'Review controls')
 
 	def test_workspace_submission_creates_patient_and_recommendation(self):
+		self.login_workspace_user()
+
 		with patch.dict('os.environ', {'HELIXORA_AI_PROVIDER': 'placeholder'}, clear=False):
 			response = self.client.post(
 				reverse('recommendation-workspace'),
@@ -45,7 +68,12 @@ class RecommendationWorkspaceTests(TestCase):
 		self.assertEqual(ClinicalReview.objects.count(), 1)
 
 	def test_workspace_submission_updates_existing_patient(self):
-		PatientProfile.objects.create(external_id='P-9002', diagnoses=['Earlier diagnosis'])
+		self.login_workspace_user()
+		PatientProfile.objects.create(
+			external_id='P-9002',
+			consent_status='granted',
+			diagnoses=['Earlier diagnosis'],
+		)
 
 		with patch.dict('os.environ', {'HELIXORA_AI_PROVIDER': 'placeholder'}, clear=False):
 			for note in ['First submission', 'Updated submission']:

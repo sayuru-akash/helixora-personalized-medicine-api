@@ -3,9 +3,10 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_SECRET_KEY = 'django-insecure-change-me-before-production'
 
 
-def load_env_file(path: Path):
+def load_env_file(path: Path) -> None:
     if not path.exists():
         return
 
@@ -13,9 +14,13 @@ def load_env_file(path: Path):
         line = raw_line.strip()
         if not line or line.startswith('#') or '=' not in line:
             continue
+        if line.startswith('export '):
+            line = line.removeprefix('export ').strip()
         name, value = line.split('=', 1)
         name = name.strip()
-        value = value.strip().strip('"').strip("'")
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
         os.environ.setdefault(name, value)
 
 
@@ -33,7 +38,22 @@ def get_bool_env(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
-    return value.lower() in {'1', 'true', 'yes', 'on'}
+    normalized = value.strip().lower()
+    if normalized in {'1', 'true', 'yes', 'on'}:
+        return True
+    if normalized in {'0', 'false', 'no', 'off'}:
+        return False
+    raise RuntimeError(f'Invalid boolean value for {name}: {value!r}')
+
+
+def get_int_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value == '':
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise RuntimeError(f'Invalid integer value for {name}: {value!r}') from exc
 
 
 def get_list_env(name: str, default: str = '') -> list[str]:
@@ -41,11 +61,52 @@ def get_list_env(name: str, default: str = '') -> list[str]:
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
-ENVIRONMENT = get_env('DJANGO_ENV', 'local')
+def is_sqlite_engine(engine: str) -> bool:
+    return engine == 'django.db.backends.sqlite3' or engine.endswith('.sqlite3')
+
+
+def build_database_config() -> dict:
+    engine = get_env('DJANGO_DB_ENGINE', 'django.db.backends.sqlite3')
+    sqlite = is_sqlite_engine(engine)
+    name = get_env('DJANGO_DB_NAME', 'db.sqlite3' if sqlite else None, required=not sqlite)
+
+    if sqlite and name != ':memory:':
+        database_name = Path(name)
+        if not database_name.is_absolute():
+            database_name = BASE_DIR / database_name
+    else:
+        database_name = name
+
+    config = {
+        'ENGINE': engine,
+        'NAME': database_name,
+    }
+
+    if not sqlite:
+        optional_settings = {
+            'USER': 'DJANGO_DB_USER',
+            'PASSWORD': 'DJANGO_DB_PASSWORD',
+            'HOST': 'DJANGO_DB_HOST',
+            'PORT': 'DJANGO_DB_PORT',
+        }
+        for setting_name, env_name in optional_settings.items():
+            value = get_env(env_name, '')
+            if value != '':
+                config[setting_name] = value
+
+        config['CONN_MAX_AGE'] = get_int_env(
+            'DJANGO_DB_CONN_MAX_AGE',
+            60 if ENVIRONMENT == 'production' else 0,
+        )
+
+    return config
+
+
+ENVIRONMENT = get_env('DJANGO_ENV', 'local').lower()
 
 SECRET_KEY = get_env(
     'DJANGO_SECRET_KEY',
-    'django-insecure-change-me-before-production' if ENVIRONMENT != 'production' else None,
+    DEFAULT_SECRET_KEY if ENVIRONMENT != 'production' else None,
     required=ENVIRONMENT == 'production',
 )
 
@@ -91,6 +152,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+LOGIN_URL = get_env('DJANGO_LOGIN_URL', '/admin/login/')
 
 TEMPLATES = [
     {
@@ -111,10 +173,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': get_env('DJANGO_DB_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': BASE_DIR / get_env('DJANGO_DB_NAME', 'db.sqlite3'),
-    }
+    'default': build_database_config(),
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -148,7 +207,10 @@ CSRF_TRUSTED_ORIGINS = get_list_env('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 SECURE_SSL_REDIRECT = get_bool_env('DJANGO_SECURE_SSL_REDIRECT', ENVIRONMENT == 'production')
 SESSION_COOKIE_SECURE = get_bool_env('DJANGO_SESSION_COOKIE_SECURE', ENVIRONMENT == 'production')
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = get_env('DJANGO_SESSION_COOKIE_SAMESITE', 'Lax')
 CSRF_COOKIE_SECURE = get_bool_env('DJANGO_CSRF_COOKIE_SECURE', ENVIRONMENT == 'production')
+CSRF_COOKIE_SAMESITE = get_env('DJANGO_CSRF_COOKIE_SAMESITE', 'Lax')
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'

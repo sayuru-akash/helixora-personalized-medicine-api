@@ -140,25 +140,54 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 2. Install dependencies
+On macOS or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. Configure local environment
+
+```bash
+cp .env.example .env
+```
+
+For local development, keep secrets in `.env` only. Use `HELIXORA_AI_PROVIDER=placeholder` unless you explicitly need to test a configured AI provider.
+
+### 3. Install dependencies
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### 3. Run migrations
+### 4. Run migrations
 
 ```powershell
 python manage.py migrate
 ```
 
-### 4. Start the development server
+### 5. Run validation
+
+```powershell
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test
+```
+
+For deployment-style validation, provide production-safe environment values and run:
+
+```bash
+python scripts/check.py
+```
+
+### 6. Start the development server
 
 ```powershell
 python manage.py runserver
 ```
 
-### 5. Verify the health endpoint
+### 7. Verify the health endpoint
 
 Open:
 
@@ -169,10 +198,11 @@ Expected response:
 ```json
 {
   "status": "ok",
-  "service": "helixora-api",
-  "framework": "django-drf-celery"
+  "service": "helixora-api"
 }
 ```
+
+Operational health details are available at `api/v1/ops/health/` for authorized staff users.
 
 ### Celery note
 
@@ -598,23 +628,25 @@ Potential future directions:
 
 ### Current status
 
-**Active early-stage backend development**
+**Production-hardening backend foundation**
 
 The repository currently includes:
 
 - project vision and product framing
 - healthcare-focused AI guardrail planning
-- Django backend scaffold
-- API and Celery foundation
-- initial local database setup
+- Django backend with domain models for patients, genomics, recommendations, clinical reviews, and audit events
+- Django REST Framework API with role-aware clinical access controls
+- consent-gated AI recommendation workflow with safe placeholder fallback and Gemini provider support
+- append-only audit-event protections through normal application paths
+- production settings validation, pinned direct dependencies, CI checks, and local deployment gate script
 
-### In progress next
+### Current hardening boundaries
 
-- core data models
-- recommendation schema design
-- clinician review workflow implementation
-- audit event modeling
-- safe recommendation generation pipeline
+- The public landing page is non-sensitive; clinical workspace access requires an authenticated authorized clinical user.
+- Public health output is intentionally minimal; operational health details are protected.
+- Raw recommendation creation and deletion are not exposed through the API; recommendation generation goes through the guarded workflow.
+- Clinical review reviewer identity and review timestamp are server-controlled.
+- This codebase is not a substitute for regulatory, clinical, legal, infrastructure, or security certification before real patient deployment.
 
 ### Guiding implementation principle
 

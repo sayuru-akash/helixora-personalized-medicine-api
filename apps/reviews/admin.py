@@ -3,11 +3,6 @@ from django.contrib import admin
 from .models import ClinicalReview
 
 
-@admin.action(description='Mark selected reviews as needs review')
-def mark_reviews_needing_review(modeladmin, request, queryset):
-	queryset.update(decision=ClinicalReview.Decision.NEEDS_REVIEW)
-
-
 @admin.register(ClinicalReview)
 class ClinicalReviewAdmin(admin.ModelAdmin):
 	list_display = (
@@ -26,7 +21,7 @@ class ClinicalReviewAdmin(admin.ModelAdmin):
 	list_select_related = ('recommendation', 'recommendation__patient', 'reviewer')
 	date_hierarchy = 'updated_at'
 	list_per_page = 30
-	actions = (mark_reviews_needing_review,)
+	actions = None
 	fieldsets = (
 		('Linkage', {'fields': ('id', 'recommendation', 'reviewer')}),
 		('Decision', {'fields': ('decision', 'review_notes', 'override_reason')}),

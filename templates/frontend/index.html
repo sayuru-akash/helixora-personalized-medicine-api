@@ -84,22 +84,22 @@
           </div>
         </section>
 
-        <section class="metric-strip" aria-label="Workspace overview">
+        <section class="metric-strip" aria-label="Platform safeguards">
           <article>
-            <span>Patients</span>
-            <strong>{{ stats.patients }}</strong>
+            <span>Access</span>
+            <strong>Role gated</strong>
           </article>
           <article>
-            <span>Drafts</span>
-            <strong>{{ stats.recommendations }}</strong>
+            <span>AI use</span>
+            <strong>Consent first</strong>
           </article>
           <article>
-            <span>Pending review</span>
-            <strong>{{ stats.pending_reviews }}</strong>
+            <span>Output</span>
+            <strong>Review required</strong>
           </article>
           <article>
-            <span>Audit events</span>
-            <strong>{{ stats.audit_events }}</strong>
+            <span>Traceability</span>
+            <strong>Audit logged</strong>
           </article>
         </section>
 
@@ -107,42 +107,48 @@
           <div class="workspace-panel workspace-panel--wide">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">Recent drafts</p>
-                <h3>Recommendation workspace</h3>
+                <p class="eyebrow">Protected workspace</p>
+                <h3>Clinical recommendation drafting</h3>
               </div>
-              <a class="text-link" href="/workspace/">Create draft</a>
+              <a class="text-link" href="/workspace/">Open workspace</a>
             </div>
 
-            {% if latest_recommendations %}
             <div class="draft-list">
-              {% for recommendation in latest_recommendations %}
               <article class="draft-row">
                 <div>
-                  <h4>{{ recommendation.title }}</h4>
-                  <p>Patient {{ recommendation.patient.external_id }}</p>
+                  <h4>Clinical context intake</h4>
+                  <p>Clinical, medication, allergy, progression, and genomic context.</p>
                 </div>
                 <div class="token-group">
-                  <span class="status-pill">{{ recommendation.get_status_display }}</span>
-                  <span class="status-pill status-pill--muted">
-                    {{ recommendation.get_confidence_level_display }}
-                  </span>
+                  <span class="status-pill">Protected</span>
                 </div>
               </article>
-              {% endfor %}
+              <article class="draft-row">
+                <div>
+                  <h4>AI-assisted draft generation</h4>
+                  <p>Consent-gated output with missing-data flags and uncertainty.</p>
+                </div>
+                <div class="token-group">
+                  <span class="status-pill">Review gated</span>
+                </div>
+              </article>
+              <article class="draft-row">
+                <div>
+                  <h4>Clinician review and audit</h4>
+                  <p>Every recommendation lifecycle event stays traceable.</p>
+                </div>
+                <div class="token-group">
+                  <span class="status-pill">Audited</span>
+                </div>
+              </article>
             </div>
-            {% else %}
-            <div class="empty-state">
-              <strong>No drafts yet</strong>
-              <span>Start with a patient profile and genomic context.</span>
-            </div>
-            {% endif %}
           </div>
 
           <aside class="workspace-panel">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Review flow</p>
-                <h3>Production-ready path</h3>
+                <h3>Safety-first path</h3>
               </div>
             </div>
             <ol class="review-steps">

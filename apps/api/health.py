@@ -2,7 +2,14 @@ from celery import current_app as celery_app
 from django.conf import settings
 
 
-def get_health_status():
+def get_public_health_status():
+	return {
+		'status': 'ok',
+		'service': 'helixora-api',
+	}
+
+
+def get_operations_health_status():
 	broker_url = getattr(settings, 'CELERY_BROKER_URL', '')
 	return {
 		'status': 'ok',
@@ -15,3 +22,7 @@ def get_health_status():
 			'app_name': celery_app.main,
 		},
 	}
+
+
+def get_health_status():
+	return get_operations_health_status()

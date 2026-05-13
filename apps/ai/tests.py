@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from apps.ai.services import generate_recommendation
+from apps.ai.services import RecommendationConsentError, generate_recommendation
 from apps.audit.models import AuditEvent
 from apps.genomics.models import GenomicInsight
 from apps.patients.models import PatientProfile
@@ -19,6 +19,7 @@ class RecommendationServiceTests(TestCase):
 	def test_generate_recommendation_creates_review_and_audit_events(self):
 		patient = PatientProfile.objects.create(
 			external_id='P-3001',
+			consent_status='granted',
 			diagnoses=['Condition A'],
 			medications=['Medication A'],
 			allergies=['None known'],
@@ -49,7 +50,7 @@ class RecommendationServiceTests(TestCase):
 		)
 
 	def test_generate_recommendation_marks_incomplete_data_as_insufficient(self):
-		patient = PatientProfile.objects.create(external_id='P-3002')
+		patient = PatientProfile.objects.create(external_id='P-3002', consent_status='granted')
 
 		recommendation = generate_recommendation(patient=patient)
 
@@ -58,3 +59,11 @@ class RecommendationServiceTests(TestCase):
 			TreatmentRecommendation.ConfidenceLevel.INSUFFICIENT_DATA,
 		)
 		self.assertGreaterEqual(len(recommendation.missing_data_flags), 1)
+
+	def test_generate_recommendation_blocks_without_active_consent(self):
+		patient = PatientProfile.objects.create(external_id='P-3003', consent_status='revoked')
+
+		with self.assertRaises(RecommendationConsentError):
+			generate_recommendation(patient=patient)
+
+		self.assertEqual(TreatmentRecommendation.objects.count(), 0)

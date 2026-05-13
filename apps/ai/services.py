@@ -8,6 +8,26 @@ from apps.recommendations.models import TreatmentRecommendation
 from apps.reviews.models import ClinicalReview
 
 
+class RecommendationConsentError(ValueError):
+	"""Raised when AI recommendation processing is blocked by patient consent."""
+
+
+ALLOWED_CONSENT_STATUSES = {'granted', 'active', 'consented'}
+
+
+def _normalize_consent_status(consent_status) -> str:
+	return str(consent_status or '').strip().lower()
+
+
+def ensure_ai_consent_status(consent_status) -> None:
+	if _normalize_consent_status(consent_status) not in ALLOWED_CONSENT_STATUSES:
+		raise RecommendationConsentError('AI recommendation processing requires active patient consent.')
+
+
+def ensure_patient_ai_consent(patient: PatientProfile) -> None:
+	ensure_ai_consent_status(patient.consent_status)
+
+
 @dataclass
 class RecommendationContext:
 	patient: PatientProfile
@@ -83,6 +103,7 @@ def generate_recommendation(
 	generated_by: str = 'safe-placeholder-engine',
 	model_version: str = 'rules-v1',
 ) -> TreatmentRecommendation:
+	ensure_patient_ai_consent(patient)
 	context = build_recommendation_context(patient)
 	title = f'Personalized treatment review for {patient.external_id}'
 	summary = (

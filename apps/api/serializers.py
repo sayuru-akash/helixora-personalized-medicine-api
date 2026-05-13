@@ -76,11 +76,39 @@ class TreatmentRecommendationSerializer(serializers.ModelSerializer):
 			'created_at',
 			'updated_at',
 		]
-		read_only_fields = ['id', 'created_at', 'updated_at']
+		read_only_fields = [
+			'id',
+			'summary',
+			'rationale',
+			'evidence_references',
+			'suggested_options',
+			'contraindication_warnings',
+			'missing_data_flags',
+			'uncertainty_notes',
+			'intended_use_notice',
+			'status',
+			'confidence_level',
+			'risk_level',
+			'clinician_review_required',
+			'generated_by',
+			'model_version',
+			'created_at',
+			'updated_at',
+		]
 
 	def validate(self, attrs):
-		missing_data_flags = attrs.get('missing_data_flags')
-		confidence_level = attrs.get('confidence_level')
+		patient = attrs.get('patient', getattr(self.instance, 'patient', None))
+		primary_genomic_insight = attrs.get(
+			'primary_genomic_insight',
+			getattr(self.instance, 'primary_genomic_insight', None),
+		)
+		if patient and primary_genomic_insight and primary_genomic_insight.patient_id != patient.id:
+			raise serializers.ValidationError(
+				{'primary_genomic_insight': 'Primary genomic insight must belong to the recommendation patient.'}
+			)
+
+		missing_data_flags = attrs.get('missing_data_flags', getattr(self.instance, 'missing_data_flags', None))
+		confidence_level = attrs.get('confidence_level', getattr(self.instance, 'confidence_level', None))
 		if missing_data_flags and confidence_level == TreatmentRecommendation.ConfidenceLevel.HIGH:
 			raise serializers.ValidationError(
 				{'confidence_level': 'High confidence is not allowed when missing data flags are present.'}
@@ -104,7 +132,7 @@ class ClinicalReviewSerializer(serializers.ModelSerializer):
 			'created_at',
 			'updated_at',
 		]
-		read_only_fields = ['id', 'created_at', 'updated_at']
+		read_only_fields = ['id', 'reviewer', 'reviewed_at', 'created_at', 'updated_at']
 
 	def validate(self, attrs):
 		decision = attrs.get('decision', getattr(self.instance, 'decision', None))
@@ -153,4 +181,4 @@ class AuditEventSerializer(serializers.ModelSerializer):
 			'metadata',
 			'created_at',
 		]
-		read_only_fields = ['id', 'created_at']
+		read_only_fields = fields

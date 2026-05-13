@@ -3,16 +3,6 @@ from django.contrib import admin
 from .models import PatientProfile
 
 
-@admin.action(description='Mark selected patients as active')
-def mark_patients_active(modeladmin, request, queryset):
-	queryset.update(record_status=PatientProfile.RecordStatus.ACTIVE)
-
-
-@admin.action(description='Archive selected patients')
-def archive_patients(modeladmin, request, queryset):
-	queryset.update(record_status=PatientProfile.RecordStatus.ARCHIVED)
-
-
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
 	list_display = (
@@ -29,7 +19,7 @@ class PatientProfileAdmin(admin.ModelAdmin):
 	ordering = ('-updated_at',)
 	date_hierarchy = 'updated_at'
 	list_per_page = 30
-	actions = (mark_patients_active, archive_patients)
+	actions = None
 	fieldsets = (
 		('Identity', {'fields': ('id', 'external_id', 'record_status', 'consent_status')}),
 		('Clinical Profile', {'fields': ('date_of_birth', 'sex_at_birth', 'clinical_notes_summary')}),

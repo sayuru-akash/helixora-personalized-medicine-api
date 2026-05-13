@@ -3,16 +3,6 @@ from django.contrib import admin
 from .models import TreatmentRecommendation
 
 
-@admin.action(description='Mark selected recommendations as needs review')
-def mark_needs_review(modeladmin, request, queryset):
-	queryset.update(status=TreatmentRecommendation.Status.NEEDS_REVIEW, clinician_review_required=True)
-
-
-@admin.action(description='Return selected recommendations to draft')
-def mark_draft(modeladmin, request, queryset):
-	queryset.update(status=TreatmentRecommendation.Status.DRAFT)
-
-
 @admin.register(TreatmentRecommendation)
 class TreatmentRecommendationAdmin(admin.ModelAdmin):
 	list_display = (
@@ -33,7 +23,7 @@ class TreatmentRecommendationAdmin(admin.ModelAdmin):
 	ordering = ('-updated_at',)
 	date_hierarchy = 'updated_at'
 	list_per_page = 30
-	actions = (mark_needs_review, mark_draft)
+	actions = None
 	fieldsets = (
 		('Identity', {'fields': ('id', 'patient', 'primary_genomic_insight', 'title')}),
 		('Recommendation Narrative', {'fields': ('summary', 'rationale', 'suggested_options', 'evidence_references')}),
