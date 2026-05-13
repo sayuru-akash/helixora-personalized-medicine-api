@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -72,3 +73,18 @@ class TreatmentRecommendation(models.Model):
 
 	def __str__(self):
 		return f'{self.title} ({self.get_status_display()})'
+
+	def clean(self):
+		super().clean()
+		if (
+			self.primary_genomic_insight_id
+			and self.patient_id
+			and self.primary_genomic_insight.patient_id != self.patient_id
+		):
+			raise ValidationError(
+				{'primary_genomic_insight': 'Primary genomic insight must belong to the recommendation patient.'}
+			)
+
+	def save(self, *args, **kwargs):
+		self.full_clean()
+		super().save(*args, **kwargs)

@@ -2,9 +2,11 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core.exceptions import PermissionDenied
 from django.test import TestCase
 from django.urls import reverse
 
+from apps.ai.workflow import run_recommendation_workflow
 from apps.patients.models import PatientProfile
 from apps.recommendations.models import TreatmentRecommendation
 from apps.reviews.models import ClinicalReview
@@ -69,11 +71,12 @@ class RecommendationWorkspaceTests(TestCase):
 
 	def test_workspace_submission_updates_existing_patient(self):
 		self.login_workspace_user()
-		PatientProfile.objects.create(
+		patient = PatientProfile.objects.create(
 			external_id='P-9002',
 			consent_status='granted',
 			diagnoses=['Earlier diagnosis'],
 		)
+		patient.authorized_users.add(self.user)
 
 		with patch.dict('os.environ', {'HELIXORA_AI_PROVIDER': 'placeholder'}, clear=False):
 			for note in ['First submission', 'Updated submission']:
@@ -98,3 +101,58 @@ class RecommendationWorkspaceTests(TestCase):
 		self.assertEqual(PatientProfile.objects.filter(external_id='P-9002').count(), 1)
 		self.assertEqual(PatientProfile.objects.get(external_id='P-9002').clinical_notes_summary, 'Updated submission')
 		self.assertEqual(TreatmentRecommendation.objects.filter(patient__external_id='P-9002').count(), 2)
+
+	def test_workspace_sidebar_only_shows_assigned_recent_recommendations(self):
+		self.login_workspace_user()
+		assigned_patient = PatientProfile.objects.create(external_id='P-ASSIGNED', consent_status='granted')
+		assigned_patient.authorized_users.add(self.user)
+		unassigned_patient = PatientProfile.objects.create(external_id='P-UNASSIGNED', consent_status='granted')
+		TreatmentRecommendation.objects.create(
+			patient=assigned_patient,
+			title='Assigned recommendation',
+			summary='Visible summary',
+			rationale='Visible rationale',
+		)
+		TreatmentRecommendation.objects.create(
+			patient=unassigned_patient,
+			title='Unassigned recommendation',
+			summary='Hidden summary',
+			rationale='Hidden rationale',
+		)
+
+		response = self.client.get(reverse('recommendation-workspace'))
+
+		self.assertContains(response, 'Assigned recommendation')
+		self.assertContains(response, 'P-ASSIGNED')
+		self.assertNotContains(response, 'Unassigned recommendation')
+		self.assertNotContains(response, 'P-UNASSIGNED')
+
+	def test_workflow_blocks_existing_patient_self_authorization_by_external_id(self):
+		other_user = get_user_model().objects.create_user(
+			username='other-clinician',
+			email='other@example.com',
+			password='safe-password-123',
+		)
+		patient = PatientProfile.objects.create(
+			external_id='P-OWNED',
+			consent_status='granted',
+			diagnoses=['Earlier diagnosis'],
+		)
+		patient.authorized_users.add(other_user)
+
+		with self.assertRaises(PermissionDenied):
+			run_recommendation_workflow(
+				patient_data={
+					'external_id': 'P-OWNED',
+					'consent_status': 'granted',
+					'diagnoses': ['Tampered diagnosis'],
+					'medications': ['Medication A'],
+					'allergies': ['None known'],
+				},
+				actor=self.user,
+			)
+
+		patient.refresh_from_db()
+		self.assertEqual(patient.diagnoses, ['Earlier diagnosis'])
+		self.assertFalse(patient.authorized_users.filter(pk=self.user.pk).exists())
+		self.assertEqual(TreatmentRecommendation.objects.count(), 0)

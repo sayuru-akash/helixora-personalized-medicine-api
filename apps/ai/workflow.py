@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 
 from apps.ai.providers import PlaceholderRecommendationProvider, get_recommendation_provider
@@ -156,12 +157,36 @@ def _derive_risk_level(provider_result) -> str:
 	return TreatmentRecommendation.RiskLevel.LOW
 
 
+def _actor_has_admin_scope(actor) -> bool:
+	return bool(
+		actor
+		and getattr(actor, 'is_authenticated', False)
+		and (actor.is_superuser or actor.groups.filter(name='clinical_admin').exists())
+	)
+
+
+def _actor_has_patient_scope(actor, patient: PatientProfile) -> bool:
+	if actor is None:
+		return True
+	if not getattr(actor, 'is_authenticated', False):
+		return False
+	if _actor_has_admin_scope(actor):
+		return True
+	return patient.authorized_users.filter(pk=actor.pk).exists()
+
+
+def _ensure_actor_can_use_patient(actor, patient: PatientProfile) -> None:
+	if not _actor_has_patient_scope(actor, patient):
+		raise PermissionDenied('You do not have access to this patient record.')
+
+
 def _upsert_patient(*, external_id: str, patient_data: dict, actor=None):
 	patient = PatientProfile.objects.filter(external_id=external_id).first()
 	defaults = {key: value for key, value in patient_data.items() if key != 'external_id'}
 	if patient is None:
 		patient = PatientProfile(external_id=external_id, **defaults)
 	else:
+		_ensure_actor_can_use_patient(actor, patient)
 		for key, value in defaults.items():
 			setattr(patient, key, value)
 
@@ -187,6 +212,7 @@ def run_recommendation_workflow(*, patient_data: dict, genomic_data: dict | None
 	ensure_ai_consent_status(patient_data.get('consent_status'))
 	existing_patient = PatientProfile.objects.filter(external_id=external_id).first()
 	if existing_patient:
+		_ensure_actor_can_use_patient(actor, existing_patient)
 		ensure_patient_ai_consent(existing_patient)
 
 	with transaction.atomic():

@@ -1,10 +1,13 @@
 from django.contrib import admin
 
+from apps.api.admin_scoping import PatientScopedAdminMixin
+
 from .models import TreatmentRecommendation
 
 
 @admin.register(TreatmentRecommendation)
-class TreatmentRecommendationAdmin(admin.ModelAdmin):
+class TreatmentRecommendationAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
+	patient_scope_filter = 'patient__authorized_users'
 	list_display = (
 		'title',
 		'patient',
@@ -15,6 +18,9 @@ class TreatmentRecommendationAdmin(admin.ModelAdmin):
 		'generated_by',
 		'updated_at',
 	)
+
+	def has_delete_permission(self, request, obj=None):
+		return False
 	list_filter = ('status', 'confidence_level', 'risk_level', 'clinician_review_required', 'generated_by', 'updated_at')
 	search_fields = ('title', 'patient__external_id', 'summary')
 	readonly_fields = (

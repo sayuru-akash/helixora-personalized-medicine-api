@@ -1,6 +1,16 @@
 import uuid
+import re
 
 from config.logging import correlation_id_var
+
+
+CORRELATION_ID_PATTERN = re.compile(r'^[A-Za-z0-9_.:-]{1,100}$')
+
+
+def normalize_correlation_id(value):
+	if value and CORRELATION_ID_PATTERN.fullmatch(value):
+		return value
+	return str(uuid.uuid4())
 
 
 class CorrelationIdMiddleware:
@@ -11,7 +21,7 @@ class CorrelationIdMiddleware:
 		self.get_response = get_response
 
 	def __call__(self, request):
-		correlation_id = request.META.get(self.HEADER_NAME) or str(uuid.uuid4())
+		correlation_id = normalize_correlation_id(request.META.get(self.HEADER_NAME, ''))
 		token = correlation_id_var.set(correlation_id)
 		request.correlation_id = correlation_id
 		try:

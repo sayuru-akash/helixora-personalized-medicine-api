@@ -1,10 +1,12 @@
 from django.contrib import admin
 
+from apps.api.admin_scoping import AuditPatientScopedAdminMixin
+
 from .models import AuditEvent
 
 
 @admin.register(AuditEvent)
-class AuditEventAdmin(admin.ModelAdmin):
+class AuditEventAdmin(AuditPatientScopedAdminMixin, admin.ModelAdmin):
 	list_display = ('event_type', 'patient', 'recommendation', 'actor', 'created_at')
 	list_filter = ('event_type', 'created_at', 'actor')
 	search_fields = ('patient__external_id', 'recommendation__title', 'actor__username', 'correlation_id')

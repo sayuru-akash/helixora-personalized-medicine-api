@@ -9,6 +9,7 @@ from apps.api.serializers import TreatmentRecommendationSerializer
 from apps.genomics.models import GenomicInsight
 from apps.patients.models import PatientProfile
 from apps.recommendations.models import TreatmentRecommendation
+from apps.reviews.models import ClinicalReview
 
 
 class HealthCheckApiTests(APITestCase):
@@ -222,3 +223,47 @@ class AuditEventApiTests(APITestCase):
 		)
 
 		self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class ClinicalReviewApiTests(APITestCase):
+	def setUp(self):
+		self.user = get_user_model().objects.create_user(
+			username='review-api-user',
+			email='review-api@example.com',
+			password='safe-password-123',
+		)
+		self.user.groups.add(Group.objects.create(name='clinical_reviewer'))
+		self.patient = PatientProfile.objects.create(external_id='P-REVIEW-API', consent_status='granted')
+		self.patient.authorized_users.add(self.user)
+		self.recommendation = TreatmentRecommendation.objects.create(
+			patient=self.patient,
+			title='Accessible recommendation',
+			summary='Summary',
+			rationale='Rationale',
+		)
+		self.review = ClinicalReview.objects.create(recommendation=self.recommendation)
+		self.other_patient = PatientProfile.objects.create(external_id='P-REVIEW-OTHER', consent_status='granted')
+		self.other_recommendation = TreatmentRecommendation.objects.create(
+			patient=self.other_patient,
+			title='Inaccessible recommendation',
+			summary='Summary',
+			rationale='Rationale',
+		)
+		self.client.force_authenticate(user=self.user)
+
+	def test_review_update_cannot_reassign_recommendation(self):
+		response = self.client.patch(
+			reverse('clinical-review-detail', kwargs={'pk': self.review.pk}),
+			{
+				'recommendation': str(self.other_recommendation.pk),
+				'decision': ClinicalReview.Decision.APPROVED,
+				'limitations_acknowledged': True,
+				'missing_data_acknowledged': True,
+			},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.review.refresh_from_db()
+		self.assertEqual(self.review.recommendation, self.recommendation)
+		self.assertEqual(self.review.reviewer, self.user)

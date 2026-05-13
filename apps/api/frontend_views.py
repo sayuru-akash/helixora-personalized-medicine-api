@@ -21,6 +21,14 @@ def user_can_access_clinical_workspace(user) -> bool:
 	return user.has_perm('patients.add_patientprofile') and user.has_perm('recommendations.view_treatmentrecommendation')
 
 
+def user_has_clinical_admin_scope(user) -> bool:
+	return bool(
+		user
+		and user.is_authenticated
+		and (user.is_superuser or user.groups.filter(name='clinical_admin').exists())
+	)
+
+
 class LandingPageView(TemplateView):
 	template_name = 'frontend/index.html'
 
@@ -40,10 +48,17 @@ class RecommendationWorkspaceView(LoginRequiredMixin, UserPassesTestMixin, FormV
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
-		context['latest_recommendations'] = TreatmentRecommendation.objects.select_related(
+		latest_recommendations = TreatmentRecommendation.objects.select_related(
 			'patient', 'primary_genomic_insight'
-		)[:5]
-		context['latest_audit_events'] = AuditEvent.objects.select_related('patient', 'recommendation')[:6]
+		)
+		latest_audit_events = AuditEvent.objects.select_related('patient', 'recommendation')
+		if not user_has_clinical_admin_scope(self.request.user):
+			latest_recommendations = latest_recommendations.filter(patient__authorized_users=self.request.user)
+			latest_audit_events = latest_audit_events.filter(
+				patient__authorized_users=self.request.user
+			)
+		context['latest_recommendations'] = latest_recommendations[:5]
+		context['latest_audit_events'] = latest_audit_events[:6]
 		context['full_width_fields'] = self.form_class.FULL_WIDTH_FIELDS
 		return context
 

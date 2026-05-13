@@ -61,6 +61,21 @@ class CorrelationIdMiddlewareTests(SimpleTestCase):
 		self.assertIn('X-Correlation-ID', response)
 		self.assertEqual(response['X-Correlation-ID'], request.correlation_id)
 
+	def test_middleware_replaces_invalid_correlation_id_header(self):
+		factory = APIRequestFactory()
+		request = factory.get('/api/v1/health/', HTTP_X_CORRELATION_ID='bad\nheader')
+
+		def get_response(incoming_request):
+			from django.http import JsonResponse
+
+			return JsonResponse({'ok': True, 'correlation_id': incoming_request.correlation_id})
+
+		response = CorrelationIdMiddleware(get_response)(request)
+
+		self.assertNotEqual(response['X-Correlation-ID'], 'bad\nheader')
+		self.assertEqual(response['X-Correlation-ID'], request.correlation_id)
+		self.assertEqual(len(response['X-Correlation-ID']), 36)
+
 
 class CorrelationIdFilterTests(SimpleTestCase):
 	def test_filter_never_crashes_when_context_lookup_fails(self):

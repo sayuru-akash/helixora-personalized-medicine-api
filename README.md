@@ -51,7 +51,7 @@ Helixora AI is a backend-first Django project focused on safe, auditable clinica
 - Protected operational health endpoint at `api/v1/ops/health/`
 - Domain models and migrations for patient profiles, genomic insights, treatment recommendations, clinical reviews, and audit events
 - Consent-gated recommendation workflow with placeholder and Gemini provider support
-- Role-aware, patient-scoped clinical API and protected workspace access
+- Role-aware, patient-scoped clinical API, Django admin, and protected workspace access
 - Append-only audit-event protections through normal application paths
 - Production settings validation, CI checks, pinned direct dependencies, and local deployment gate script
 
@@ -574,6 +574,7 @@ Helixora AI includes the following application-level controls in the backend fou
 
 - AI provider requests, recommendation creation, update, review request, approval, override, and rejection are represented as audit events.
 - Audit history is append-only from normal application paths.
+- Clinical-domain admin screens are patient-scoped for non-admin staff, keep reviewer attribution server-controlled, and disable destructive bulk actions.
 - Correlation IDs are captured across API requests, AI workflow execution, review actions, and background jobs.
 - Approval, override, and rejection require explicit acknowledgement of limitations and missing-data considerations.
 
@@ -612,7 +613,7 @@ The repository includes:
 - project vision and product framing
 - healthcare-focused AI guardrail planning
 - Django backend with domain models for patients, genomics, recommendations, clinical reviews, and audit events
-- Django REST Framework API with role-aware, patient-scoped clinical access controls
+- Django REST Framework API and Django admin with role-aware, patient-scoped clinical access controls
 - consent-gated AI recommendation workflow with durable pre-provider validation, safe placeholder fallback, and Gemini provider support
 - append-only audit-event protections through normal application paths
 - production settings validation, pinned direct dependencies, CI checks, and local deployment gate script
@@ -620,7 +621,7 @@ The repository includes:
 ### Hardening boundaries
 
 - The public landing page is non-sensitive; clinical workspace access requires an authenticated authorized clinical user.
-- Non-admin clinical API users only see explicitly assigned patient records and related genomic, recommendation, review, and audit rows.
+- Non-admin clinical users only see explicitly assigned patient records and related genomic, recommendation, review, and audit rows across the API, workspace, and admin surfaces.
 - Public health output is intentionally minimal; operational health details are protected.
 - Raw recommendation creation and deletion are not exposed through the API; recommendation generation goes through the guarded workflow.
 - Clinical review reviewer identity and review timestamp are server-controlled.

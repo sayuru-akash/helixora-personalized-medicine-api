@@ -132,7 +132,7 @@ class ClinicalReviewSerializer(serializers.ModelSerializer):
 			'created_at',
 			'updated_at',
 		]
-		read_only_fields = ['id', 'reviewer', 'reviewed_at', 'created_at', 'updated_at']
+		read_only_fields = ['id', 'recommendation', 'reviewer', 'reviewed_at', 'created_at', 'updated_at']
 
 	def validate(self, attrs):
 		decision = attrs.get('decision', getattr(self.instance, 'decision', None))

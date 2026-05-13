@@ -22,7 +22,7 @@ def create_review_audit_event(sender, instance, created, **kwargs):
 			updated_at=instance.updated_at,
 		)
 
-	if created:
+	if created and instance.decision == ClinicalReview.Decision.NEEDS_REVIEW:
 		return
 
 	event_type_map = {

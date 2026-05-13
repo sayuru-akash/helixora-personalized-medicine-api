@@ -1,10 +1,13 @@
 from django.contrib import admin
 
+from apps.api.admin_scoping import PatientScopedAdminMixin
+
 from .models import GenomicInsight
 
 
 @admin.register(GenomicInsight)
-class GenomicInsightAdmin(admin.ModelAdmin):
+class GenomicInsightAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
+	patient_scope_filter = 'patient__authorized_users'
 	list_display = (
 		'gene_symbol',
 		'variant',
@@ -22,6 +25,7 @@ class GenomicInsightAdmin(admin.ModelAdmin):
 	list_select_related = ('patient',)
 	date_hierarchy = 'created_at'
 	list_per_page = 30
+	actions = None
 	fieldsets = (
 		('Linkage', {'fields': ('id', 'patient')}),
 		('Variant Details', {'fields': ('gene_symbol', 'variant', 'biomarker_category')}),
@@ -29,3 +33,6 @@ class GenomicInsightAdmin(admin.ModelAdmin):
 		('Evidence', {'fields': ('evidence_summary', 'source', 'report_reference')}),
 		('Timeline', {'fields': ('observed_at', 'created_at')}),
 	)
+
+	def has_delete_permission(self, request, obj=None):
+		return False
